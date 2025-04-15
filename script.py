@@ -1,18 +1,3 @@
-
-"""
-GALACTIC DEFENDER - JUEGO ARCADE 2D
-
-Módulo principal que implementa un shooter espacial con:
-- Sistema de oleadas progresivas
-- Gestión de colisiones eficiente
-- Menús interactivos
-- Sonido espacial
-- Escalado adaptable de resolución
-
-Autor: [Tu nombre]
-Versión: 1.2.0
-Última actualización: [Fecha]
-"""
 import pygame
 import random
 import sys
@@ -21,18 +6,18 @@ import sys
 # CONFIGURACIÓN INICIAL Y CONSTANTES
 # =============================================================================
 
-# Inicialización de subsistemas principales
+# Inicialización de los módulos de Pygame, incluidos los sonidos
 pygame.init()
 pygame.mixer.init()
 
-# Configuración de pantalla adaptable
+# Configuración de pantalla: tamaño dinámico según el monitor del usuario
 info = pygame.display.Info()
-SCREEN_WIDTH = int(info.current_w )  # 90% del ancho de la pantalla
-SCREEN_HEIGHT = int(info.current_h *0.95)  # 80% del alto de la pantalla
+SCREEN_WIDTH = int(info.current_w )          # Ancho de pantalla completo
+SCREEN_HEIGHT = int(info.current_h *0.95)    # 95% de la altura del monitor
 screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
 pygame.display.set_caption("Galactic Defender")
 
-# Definición de colores RGB
+# Definición de colores básicos en formato RGB
 BLACK = (0, 0, 0)
 WHITE = (255, 255, 255)
 RED = (255, 0, 0)
@@ -41,11 +26,11 @@ BLUE = (0, 0, 255)
 YELLOW = (255, 255, 0)
 ORANGE = (255, 165, 0)
 
-# Configuración de rendimiento
+# Configuración del reloj y FPS para controlar el rendimiento
 clock = pygame.time.Clock()
 FPS = 60
 
-# Cargar sonidos
+# Cargar sonidos de disparo y explosión, con control de errores
 try:
     shoot_sound = pygame.mixer.Sound("sound/space-battle-sounds-cm-37833 (mp3cut.net).mp3")
     explosion_sound = pygame.mixer.Sound("sound/explosion-312361.mp3")
@@ -54,7 +39,7 @@ except:
     shoot_sound = None
     explosion_sound = None
 
-# Cargar imágenes
+# Cargar imágenes del jugador y enemigos. Si falla, usa figuras básicas
 try:
     player_img = pygame.image.load("images/player.png").convert_alpha()
     enemy_images = [
@@ -63,7 +48,6 @@ try:
         pygame.image.load("images/enemy3.png").convert_alpha()
     ]
 except:
-    # Si no hay imágenes, crear formas básicas
     player_img = pygame.Surface((40, 30))
     player_img.fill(GREEN)
     enemy_images = [
@@ -75,22 +59,25 @@ except:
     enemy_images[1].fill(ORANGE)
     enemy_images[2].fill(BLUE)
 
+# =============================================================================
+# FUNCIONES Y CLASES DEL JUEGO
+# =============================================================================
 
-# Función para dibujar texto con fondo
+# Función auxiliar para dibujar texto con fondo opcional
 def draw_text(text, size, x, y, text_color=WHITE, bg_color=None, border_radius=0):
     font = pygame.font.Font(None, size)
     text_surface = font.render(text, True, text_color)
     text_rect = text_surface.get_rect(center=(x, y))
 
     if bg_color:
-        button_rect = text_rect.inflate(40, 20)
+        button_rect = text_rect.inflate(50, 20)
         pygame.draw.rect(screen, bg_color, button_rect, border_radius=border_radius)
 
     screen.blit(text_surface, text_rect)
-    return text_rect.inflate(40, 20) if bg_color else text_rect
+    return text_rect.inflate(50, 20) if bg_color else text_rect
 
 
-# Clase del jugador
+# Clase que representa al jugador
 class Player(pygame.sprite.Sprite):
     def __init__(self):
         super().__init__()
@@ -99,7 +86,7 @@ class Player(pygame.sprite.Sprite):
         self.speed = 8
         self.lives = 3
         self.bullets = pygame.sprite.Group()
-        self.shoot_delay = 250
+        self.shoot_delay = 250  # Milisegundos entre disparos
         self.last_shot = pygame.time.get_ticks()
 
     def update(self):
@@ -121,14 +108,14 @@ class Player(pygame.sprite.Sprite):
             self.last_shot = now
 
 
-# Clase de balas
+# Clase para las balas disparadas por el jugador
 class Bullet(pygame.sprite.Sprite):
     def __init__(self, x, y):
         super().__init__()
         self.image = pygame.Surface((4, 15))
         self.image.fill(GREEN)
         self.rect = self.image.get_rect(center=(x, y))
-        self.speed = -10
+        self.speed = -10  # Se mueve hacia arriba
 
     def update(self):
         self.rect.y += self.speed
@@ -136,7 +123,7 @@ class Bullet(pygame.sprite.Sprite):
             self.kill()
 
 
-# Clase de enemigos
+# Clase que representa a los enemigos
 class Enemy(pygame.sprite.Sprite):
     def __init__(self, type):
         super().__init__()
@@ -144,7 +131,7 @@ class Enemy(pygame.sprite.Sprite):
         self.image = enemy_images[type]
         self.rect = self.image.get_rect(center=(random.randint(50, SCREEN_WIDTH - 50), -50))
         self.speed = random.randint(1, 3) + type
-        self.health = type + 1
+        self.health = type + 1  # Vida depende del tipo
 
     def update(self):
         self.rect.y += self.speed
@@ -152,7 +139,7 @@ class Enemy(pygame.sprite.Sprite):
             self.kill()
 
 
-# Clase principal del juego
+# Clase principal que controla el ciclo de juego
 class Game:
     def __init__(self):
         self.player = Player()
@@ -164,6 +151,7 @@ class Game:
         self.game_over = False
         self.spawn_wave()
 
+    # Genera una nueva oleada de enemigos
     def spawn_wave(self):
         for _ in range(5 + self.wave * 2):
             enemy_type = random.randint(0, 2)
@@ -171,6 +159,7 @@ class Game:
             self.enemies.add(enemy)
             self.all_sprites.add(enemy)
 
+    # Verifica colisiones entre balas y enemigos, y entre jugador y enemigos
     def check_collisions(self):
         hits = pygame.sprite.groupcollide(self.enemies, self.player.bullets, False, True)
         for enemy, bullets in hits.items():
@@ -186,6 +175,7 @@ class Game:
             if self.player.lives <= 0:
                 self.game_over = True
 
+    # Bucle principal del juego
     def run(self):
         running = True
         while running:
@@ -212,7 +202,7 @@ class Game:
             self.all_sprites.draw(screen)
             self.player.bullets.draw(screen)
 
-            # Interfaz de usuario
+            # Mostrar puntuación, vidas y oleada
             draw_text(f"Score: {self.score}", 24, 100, 20, YELLOW)
             draw_text(f"Lives: {self.player.lives}", 24, SCREEN_WIDTH - 100, 20, GREEN)
             draw_text(f"Wave: {self.wave}", 24, SCREEN_WIDTH // 2, 20, ORANGE)
@@ -220,6 +210,7 @@ class Game:
             pygame.display.flip()
             clock.tick(FPS)
 
+    # Pausa del juego con mensaje
     def pause_game(self):
         paused = True
         while paused:
@@ -236,16 +227,19 @@ class Game:
             pygame.display.update()
             clock.tick(5)
 
+# =============================================================================
+# MENÚS
+# =============================================================================
 
-# Menús
+# Menú principal del juego
 def show_main_menu():
     menu = True
     while menu:
         screen.fill(BLACK)
-        draw_text("GALACTIC DEFENDER", 60, SCREEN_WIDTH // 2, 150, YELLOW)
+        draw_text("GALACTIC DEFENDER", 60, SCREEN_WIDTH // 2, 150, GREEN)
 
-        play_btn = draw_text("Play", 40, SCREEN_WIDTH // 2, 300, BLACK, GREEN, 15)
-        quit_btn = draw_text("Quit", 40, SCREEN_WIDTH // 2, 400, BLACK, RED, 15)
+        play_btn = draw_text("Play", 40, SCREEN_WIDTH // 2, 300, BLACK,WHITE, 15)
+        quit_btn = draw_text("Quit", 40, SCREEN_WIDTH // 2, 400, BLACK, WHITE, 15)
 
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
@@ -260,15 +254,15 @@ def show_main_menu():
 
         pygame.display.update()
 
-
+# Pantalla de fin del juego
 def show_game_over(score):
     while True:
         screen.fill(BLACK)
         draw_text("GAME OVER", 60, SCREEN_WIDTH // 2, 150, RED)
         draw_text(f"Final Score: {score}", 40, SCREEN_WIDTH // 2, 250, WHITE)
 
-        retry_btn = draw_text("Retry", 40, SCREEN_WIDTH // 2, 350, BLACK, GREEN, 15)
-        menu_btn = draw_text("Main Menu", 40, SCREEN_WIDTH // 2, 450, BLACK, BLUE, 15)
+        retry_btn = draw_text("Retry", 40, SCREEN_WIDTH // 2, 350, BLACK, WHITE, 15)
+        menu_btn = draw_text("Main Menu", 40, SCREEN_WIDTH // 2, 450, BLACK, WHITE, 15)
 
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
@@ -283,13 +277,13 @@ def show_game_over(score):
 
         pygame.display.update()
 
-
+# Función principal que controla el flujo del juego
 def main():
     while True:
         show_main_menu()
         game = Game()
         game.run()
 
-
+# Iniciar el juego si se ejecuta directamente
 if __name__ == "__main__":
     main()
